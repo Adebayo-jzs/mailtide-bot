@@ -3,6 +3,7 @@ import TelegramBot from "node-telegram-bot-api";
 import { createGmailClient } from "./gmail";
 import { upsertUser } from "./db";
 import { sendStatusMessage } from "./telegram";
+import path from "path";
 
 export function startServer(
   bot: TelegramBot,
@@ -10,6 +11,9 @@ export function startServer(
 ) {
   const app = express();
   const port = process.env.PORT || 3000;
+
+  // Serve static files (like privacy.html) from the "public" folder
+  app.use(express.static(path.join(process.cwd(), "public")));
 
   app.get("/oauth2callback", async (req, res) => {
     const code = req.query.code as string;
