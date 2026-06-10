@@ -82,6 +82,10 @@ export function startServer(
     }
   });
 
+  app.get("/health", (req, res) => {
+    res.status(200).send("OK");
+  });
+
   app.listen(port, () => {
     console.log(`🌐 OAuth server listening on port ${port}`);
   });
