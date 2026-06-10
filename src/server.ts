@@ -38,7 +38,7 @@ export function startServer(
       });
 
       if (tokens.refresh_token) {
-        upsertUser(chatId, tokens.refresh_token);
+        await upsertUser(chatId, tokens.refresh_token);
         
         try {
           await sendStatusMessage(

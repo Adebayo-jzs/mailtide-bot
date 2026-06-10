@@ -3,14 +3,14 @@ import TelegramBot from "node-telegram-bot-api";
 import { createBot, sendJobNotification, sendStatusMessage } from "./telegram";
 import { createGmailClient, fetchJobEmails, getAuthUrl } from "./gmail";
 import { startServer } from "./server";
-import { getAllUsers, getUser, deleteUser, updateLastCheckTime } from "./db";
+import { initDb, getAllUsers, getUser, deleteUser, updateLastCheckTime } from "./db";
 
 function isInvalidGrant(err: unknown): boolean {
   return err instanceof Error && err.message.includes("invalid_grant");
 }
 
 async function handleExpiredToken(bot: TelegramBot, chatId: number) {
-  deleteUser(chatId);
+  await deleteUser(chatId);
   notifiedIds.delete(chatId);
   await bot.sendMessage(
     chatId,
@@ -60,6 +60,9 @@ async function checkUserEmails(
 async function main() {
   console.log("🤖 Multi-User Job Application Bot starting...");
 
+  await initDb();
+  console.log("✅ Database initialized");
+
   const bot = createBot();
 
   // Register commands in Telegram's menu
@@ -72,7 +75,7 @@ async function main() {
   ]);
 
   // Notify all registered users that the bot is online
-  const users = getAllUsers();
+  const users = await getAllUsers();
   for (const user of users) {
     bot.sendMessage(
       user.chat_id,
@@ -84,7 +87,7 @@ async function main() {
   bot.onText(/^\/start/, async (msg) => {
     const chatId = msg.chat.id;
     try {
-      const existing = getUser(chatId);
+      const existing = await getUser(chatId);
 
       if (existing) {
         await bot.sendMessage(
@@ -116,7 +119,7 @@ async function main() {
   // ─── /check ─────────────────────────────────────────────
   bot.onText(/^\/check/, async (msg) => {
     const chatId = msg.chat.id;
-    const user = getUser(chatId);
+    const user = await getUser(chatId);
 
     if (!user) {
       bot.sendMessage(chatId, "❌ You're not connected yet. Use /start to sign in first.");
@@ -147,7 +150,7 @@ async function main() {
   // ─── /status ────────────────────────────────────────────
   bot.onText(/^\/status/, async (msg) => {
     const chatId = msg.chat.id;
-    const user = getUser(chatId);
+    const user = await getUser(chatId);
 
     if (!user) {
       bot.sendMessage(chatId, "❌ You're not connected. Use /start to sign in.");
@@ -169,14 +172,14 @@ async function main() {
   // ─── /stop ──────────────────────────────────────────────
   bot.onText(/^\/stop/, async (msg) => {
     const chatId = msg.chat.id;
-    const user = getUser(chatId);
+    const user = await getUser(chatId);
 
     if (!user) {
       bot.sendMessage(chatId, "You don't have an active connection.");
       return;
     }
 
-    deleteUser(chatId);
+    await deleteUser(chatId);
     notifiedIds.delete(chatId);
 
     bot.sendMessage(
@@ -219,7 +222,7 @@ async function main() {
 
   async function poll() {
     try {
-      const users = getAllUsers();
+      const users = await getAllUsers();
       if (users.length === 0) {
         console.log(`[${new Date().toLocaleTimeString()}] No active users to poll.`);
         return;
@@ -231,7 +234,7 @@ async function main() {
           if (count > 0) {
             console.log(`📨 Sent ${count} email(s) to user ${user.chat_id}`);
           }
-          updateLastCheckTime(user.chat_id, Date.now());
+          await updateLastCheckTime(user.chat_id, Date.now());
         } catch (err) {
           if (isInvalidGrant(err)) {
             console.log(`🔑 Token expired for user ${user.chat_id}, removing...`);
