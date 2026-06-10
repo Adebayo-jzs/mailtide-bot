@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — MailTide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0D0D0D;
+      --surface:   #141414;
+      --border:    #2A2A2A;
+      --text:      #F0EDE8;
+      --muted:     #888880;
+      --amber:     #E8A830;
+      --amber-dim: #3A2A0A;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      font-size: 16px;
+      line-height: 1.75;
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 28px 40px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-mark {
+      position: relative;
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+
+    .logo-dot {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--amber);
+    }
+
+    .logo-ring {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.4);
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      border: 1.5px solid var(--amber);
+      opacity: 0;
+      animation: pulse 2.8s ease-out infinite;
+    }
+
+    .logo-ring:nth-child(3) { animation-delay: 1.4s; }
+
+    @keyframes pulse {
+      0%   { transform: translate(-50%, -50%) scale(0.4); opacity: 0.7; }
+      100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .logo-ring { animation: none; }
+    }
+
+    .logo-name {
+      font-family: 'DM Serif Display', serif;
+      font-size: 19px;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    /* ── LAYOUT ── */
+    main {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 80px 40px 120px;
+    }
+
+    /* ── HEADER ── */
+    .page-header {
+      margin-bottom: 64px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(36px, 6vw, 52px);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      font-weight: 400;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--amber);
+    }
+
+    .meta {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* ── SECTIONS ── */
+    .policy-section {
+      padding: 40px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .policy-section:last-child {
+      border-bottom: none;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .section-num {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      color: var(--amber);
+      min-width: 24px;
+      flex-shrink: 0;
+      padding-top: 3px;
+    }
+
+    h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 22px;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    .section-body {
+      padding-left: 40px;
+    }
+
+    p {
+      color: #C8C4BE;
+      margin-bottom: 16px;
+      font-size: 15px;
+    }
+
+    p:last-child { margin-bottom: 0; }
+
+    strong {
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    /* ── LIST ── */
+    .data-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .data-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 15px;
+      color: #C8C4BE;
+    }
+
+    .data-list li::before {
+      content: '';
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--amber);
+      flex-shrink: 0;
+      margin-top: 8px;
+    }
+
+    /* ── HIGHLIGHT BOX ── */
+    .callout {
+      background: var(--amber-dim);
+      border: 1px solid #5A3D10;
+      border-left: 3px solid var(--amber);
+      border-radius: 4px;
+      padding: 16px 20px;
+      margin-top: 20px;
+    }
+
+    .callout p {
+      font-size: 14px;
+      color: #D4A040;
+      margin: 0;
+    }
+
+    /* ── CODE ── */
+    code {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 13px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--amber);
+      padding: 2px 7px;
+      border-radius: 3px;
+    }
+
+    /* ── LINK ── */
+    a {
+      color: var(--amber);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      text-decoration-thickness: 1px;
+    }
+
+    a:hover { opacity: 0.75; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .footer-left {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .footer-right {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* ── MOBILE ── */
+    @media (max-width: 600px) {
+      nav { padding: 20px 24px; }
+      main { padding: 56px 24px 80px; }
+      .section-body { padding-left: 0; }
+      .section-header { flex-direction: column; gap: 4px; }
+      footer { padding: 24px; flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="logo-mark" aria-hidden="true">
+      <div class="logo-dot"></div>
+      <div class="logo-ring"></div>
+      <div class="logo-ring"></div>
+    </div>
+    <a href="#" class="logo-name">MailTide</a>
+  </nav>
+
+  <main>
+    <header class="page-header">
+      <p class="eyebrow">Legal</p>
+      <h1>Privacy <em>Policy</em></h1>
+      <p class="meta">Last updated &nbsp;·&nbsp; June 2026</p>
+    </header>
+
+    <section class="policy-section">
+      <div class="section-header">
+        <span class="section-num">01</span>
+        <h2>Data Collection &amp; Usage</h2>
+      </div>
+      <div class="section-body">
+        <p>
+          MailTide requires <strong>read-only access</strong> to your Gmail account via OAuth2.
+          This access is used solely to scan your inbox for job-related emails — interview invitations,
+          offer letters, rejections, assessments, and application confirmations — and forward
+          relevant notifications to your Telegram account.
+        </p>
+        <p>
+          We do not read, index, or process any emails outside of job-application context.
+          All classification happens in-memory at the time of scanning and is never written to disk.
+        </p>
+        <div class="callout">
+          <p>MailTide only requests the <code>gmail.readonly</code> scope. It cannot send, delete, or modify any email on your behalf.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="policy-section">
+      <div class="section-header">
+        <span class="section-num">02</span>
+        <h2>Data Storage</h2>
+      </div>
+      <div class="section-body">
+        <p>
+          We <strong>do not store your emails</strong> or their contents. The only data persisted to our systems is:
+        </p>
+        <ul class="data-list">
+          <li>Your <strong>Telegram Chat ID</strong> — to route notifications to you.</li>
+          <li>An <strong>encrypted OAuth2 refresh token</strong> — to maintain your Gmail connection without requiring repeated sign-ins.</li>
+          <li>A <strong>last-checked timestamp</strong> — so the bot knows where to resume after a restart.</li>
+        </ul>
+        <p style="margin-top: 20px;">
+          No email bodies, subjects, sender addresses, or snippets are stored at any point.
+        </p>
+      </div>
+    </section>
+
+    <section class="policy-section">
+      <div class="section-header">
+        <span class="section-num">03</span>
+        <h2>Third-Party Sharing</h2>
+      </div>
+      <div class="section-body">
+        <p>
+          We do not sell, rent, or share your data with any third parties. The only external services
+          MailTide communicates with are <strong>Google Gmail API</strong> (to read emails) and
+          <strong>Telegram Bot API</strong> (to deliver notifications) — both on your behalf and
+          under their respective privacy terms.
+        </p>
+      </div>
+    </section>
+
+    <section class="policy-section">
+      <div class="section-header">
+        <span class="section-num">04</span>
+        <h2>Data Deletion</h2>
+      </div>
+      <div class="section-body">
+        <p>
+          You can remove all stored data and disconnect MailTide at any time through either method:
+        </p>
+        <ul class="data-list">
+          <li>Send the <code>/stop</code> command to the bot on Telegram to delete your record from our database.</li>
+          <li>Revoke Gmail access directly from your <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer">Google Account Permissions page</a>.</li>
+        </ul>
+        <p style="margin-top: 20px;">
+          Revoking access or issuing <code>/stop</code> is immediate and permanent. No residual data is retained after either action.
+        </p>
+      </div>
+    </section>
+
+    <section class="policy-section">
+      <div class="section-header">
+        <span class="section-num">05</span>
+        <h2>Contact</h2>
+      </div>
+      <div class="section-body">
+        <p>
+          Questions or concerns about this policy? Reach out via Telegram or open an issue
+          on the project repository. We'll respond within 48 hours.
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <span class="footer-left">© 2026 MailTide. All rights reserved.</span>
+    <span class="footer-right">Built for job hunters, by one.</span>
+  </footer>
+
+</body>
+</html>
