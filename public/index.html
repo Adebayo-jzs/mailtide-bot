@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MailTide — Job Email Notifications on Telegram</title>
+  <meta name="description" content="Never miss a job application update again. MailTide delivers your Gmail job emails — offers, interviews, rejections, assessments — straight to Telegram in real time." />
+  <meta name="keywords" content="job tracker, gmail telegram bot, job application notifications, interview alerts, email notifications telegram" />
+  <meta property="og:title" content="MailTide — Job Email Notifications on Telegram" />
+  <meta property="og:description" content="Get instant Telegram notifications for every job application update in your Gmail. Offers, interviews, rejections — all categorized and delivered." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Reset & Tokens ──────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0D0D0D;
+      --surface:   #141414;
+      --border:    #2A2A2A;
+      --text:      #F0EDE8;
+      --muted:     #888880;
+      --dim:       #555550;
+      --amber:     #E8A830;
+      --amber-dim: #3A2A0A;
+      --amber-glow: rgba(232,168,48,0.08);
+      --serif:     'DM Serif Display', serif;
+      --sans:      'Inter', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-weight: 300;
+      font-size: 16px;
+      line-height: 1.75;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { opacity: 0.8; }
+
+    code {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 13px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--amber);
+      padding: 2px 7px;
+      border-radius: 3px;
+    }
+
+    /* ─── Nav ──────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 40px;
+      background: rgba(13,13,13,0.7);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      transition: background 0.3s;
+    }
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-mark {
+      position: relative;
+      width: 22px; height: 22px;
+      flex-shrink: 0;
+    }
+    .logo-dot {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--amber);
+    }
+    .logo-ring {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.4);
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      border: 1.5px solid var(--amber);
+      opacity: 0;
+      animation: pulse-ring 2.8s ease-out infinite;
+    }
+    .logo-ring:nth-child(3) { animation-delay: 1.4s; }
+    @keyframes pulse-ring {
+      0%   { transform: translate(-50%, -50%) scale(0.4); opacity: 0.7; }
+      100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+    }
+    .logo-name {
+      font-family: var(--serif);
+      font-size: 19px;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+    .nav-links a {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 400;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); opacity: 1; }
+    .nav-cta {
+      padding: 9px 22px;
+      background: transparent;
+      border: 1px solid var(--amber);
+      border-radius: 4px;
+      color: var(--amber) !important;
+      font-weight: 500;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+      transition: all 0.25s;
+    }
+    .nav-cta:hover {
+      background: var(--amber);
+      color: var(--bg) !important;
+      opacity: 1;
+    }
+
+    /* ─── Hero ─────────────────────────────────────────── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 140px 40px 100px;
+    }
+    .hero-inner {
+      max-width: 1100px;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      gap: 80px;
+    }
+    .hero-content { max-width: 520px; }
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-family: var(--serif);
+      font-size: clamp(38px, 5vw, 58px);
+      font-weight: 400;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      margin-bottom: 24px;
+    }
+    .hero h1 em {
+      font-style: italic;
+      color: var(--amber);
+    }
+    .hero-description {
+      font-size: 16px;
+      color: #C8C4BE;
+      line-height: 1.75;
+      margin-bottom: 40px;
+      font-weight: 300;
+    }
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: 4px;
+      font-weight: 500;
+      font-size: 14px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.25s;
+      font-family: var(--sans);
+      text-decoration: none;
+      letter-spacing: 0.01em;
+    }
+    .btn-primary {
+      background: var(--amber);
+      color: var(--bg);
+    }
+    .btn-primary:hover {
+      background: #d99a28;
+      opacity: 1;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(232,168,48,0.15);
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      color: var(--text);
+      border-color: #444;
+      opacity: 1;
+    }
+
+    /* ─── Phone Mockup ────────────────────────────────── */
+    .hero-visual {
+      display: flex;
+      justify-content: center;
+      perspective: 1200px;
+    }
+    .phone-mockup-img {
+      width: 310px;
+      border-radius: 32px;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.4);
+      overflow: hidden;
+      transform-style: preserve-3d;
+      transform: rotateX(90deg);
+      opacity: 0;
+      transition: transform 0.9s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s ease-out;
+    }
+    .phone-mockup-img.flipped-in {
+      transform: rotateX(0deg);
+      opacity: 1;
+    }
+    .phone-mockup-img img {
+      width: 100%;
+      display: block;
+    }
+    /* .phone-notch {
+      width: 110px;
+      height: 26px;
+      background: var(--bg);
+      border-radius: 0 0 14px 14px;
+      margin: 0 auto;
+    }
+    .phone-screen {
+      padding: 12px 16px 24px;
+    } */
+    .tg-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+    .tg-avatar {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: var(--amber-dim);
+      border: 1px solid #5A3D10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .tg-header-info h3 {
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .tg-header-info p {
+      font-size: 11px;
+      color: var(--amber);
+      font-weight: 400;
+    }
+    .tg-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .tg-msg {
+      background: var(--amber-glow);
+      border: 1px solid rgba(232,168,48,0.1);
+      border-radius: 2px 12px 12px 12px;
+      padding: 12px 14px;
+      font-size: 12px;
+      line-height: 1.55;
+      color: #C8C4BE;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: msg-in 0.5s ease-out forwards;
+    }
+    .tg-msg:nth-child(1) { animation-delay: 0.6s; }
+    .tg-msg:nth-child(2) { animation-delay: 1.4s; }
+    .tg-msg:nth-child(3) { animation-delay: 2.2s; }
+    .tg-msg .msg-label {
+      font-weight: 600;
+      color: var(--text);
+      display: block;
+      margin-bottom: 4px;
+      font-size: 12.5px;
+    }
+    .tg-msg .msg-detail {
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 6px;
+    }
+    .msg-time {
+      display: block;
+      text-align: right;
+      font-size: 10px;
+      color: var(--dim);
+      margin-top: 4px;
+    }
+    @keyframes msg-in {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── Divider ──────────────────────────────────────── */
+    .section-divider {
+      max-width: 1100px;
+      margin: 0 auto;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ─── Sections ─────────────────────────────────────── */
+    section {
+      padding: 100px 40px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .section-header {
+      margin-bottom: 60px;
+    }
+    .section-header .eyebrow {
+      margin-bottom: 16px;
+    }
+    .section-header h2 {
+      font-family: var(--serif);
+      font-size: clamp(28px, 3.5vw, 40px);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+    .section-header h2 em {
+      font-style: italic;
+      color: var(--amber);
+    }
+    .section-header p {
+      font-size: 16px;
+      color: #C8C4BE;
+      line-height: 1.75;
+      max-width: 560px;
+      font-weight: 300;
+    }
+
+    /* ─── Features ─────────────────────────────────────── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .feature-card {
+      background: var(--bg);
+      padding: 36px 32px;
+      transition: background 0.3s;
+    }
+    .feature-card:hover {
+      background: var(--surface);
+    }
+    .feature-num {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      color: var(--amber);
+      margin-bottom: 20px;
+    }
+    .feature-card h3 {
+      font-family: var(--serif);
+      font-size: 18px;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .feature-card p {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+      font-weight: 300;
+    }
+
+    /* ─── How It Works ────────────────────────────────── */
+    .steps-container {
+      max-width: 640px;
+    }
+    .step {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+      padding: 32px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .step:last-child { border-bottom: none; }
+    .step-num {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      color: var(--amber);
+      min-width: 28px;
+      padding-top: 4px;
+      flex-shrink: 0;
+    }
+    .step-content h3 {
+      font-family: var(--serif);
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--text);
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+    .step-content p {
+      font-size: 15px;
+      color: #C8C4BE;
+      line-height: 1.75;
+      font-weight: 300;
+    }
+
+    /* ─── Categories ───────────────────────────────────── */
+    .categories-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .category-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 22px 24px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg);
+      transition: all 0.3s;
+    }
+    .category-card:hover {
+      background: var(--surface);
+      border-color: #3A3A3A;
+    }
+    .category-emoji {
+      font-size: 26px;
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--amber-dim);
+      border-radius: 4px;
+    }
+    .category-info h4 {
+      font-family: var(--serif);
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+    .category-info p {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 300;
+    }
+
+    /* ─── Trust ────────────────────────────────────────── */
+    .trust-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .trust-card {
+      background: var(--bg);
+      padding: 40px 32px;
+      transition: background 0.3s;
+    }
+    .trust-card:hover { background: var(--surface); }
+    .trust-icon {
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+    .trust-card h4 {
+      font-family: var(--serif);
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .trust-card p {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+      font-weight: 300;
+    }
+
+    /* ─── CTA ──────────────────────────────────────────── */
+    .cta-section {
+      padding: 120px 40px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .cta-box {
+      max-width: 600px;
+      padding: 60px 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .cta-box .eyebrow { margin-bottom: 16px; }
+    .cta-box h2 {
+      font-family: var(--serif);
+      font-size: clamp(28px, 3vw, 38px);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 16px;
+      line-height: 1.15;
+    }
+    .cta-box h2 em {
+      font-style: italic;
+      color: var(--amber);
+    }
+    .cta-box p {
+      font-size: 16px;
+      color: #C8C4BE;
+      margin-bottom: 32px;
+      line-height: 1.75;
+      font-weight: 300;
+    }
+
+    /* ─── Footer ───────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .footer-left {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .footer-left a {
+      color: var(--amber);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      text-decoration-thickness: 1px;
+    }
+    .footer-right {
+      display: flex;
+      gap: 24px;
+    }
+    .footer-right a {
+      font-size: 13px;
+      color: var(--muted);
+      transition: color 0.2s;
+    }
+    .footer-right a:hover { color: var(--text); opacity: 1; }
+
+    /* ─── Scroll Reveal ────────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ─── Callout ──────────────────────────────────────── */
+    .callout {
+      background: var(--amber-dim);
+      border: 1px solid #5A3D10;
+      border-left: 3px solid var(--amber);
+      border-radius: 4px;
+      padding: 16px 20px;
+      margin-top: 24px;
+    }
+    .callout p {
+      font-size: 14px;
+      color: #D4A040;
+      margin: 0;
+      font-weight: 400;
+    }
+
+    /* ─── Responsive ───────────────────────────────────── */
+    @media (max-width: 900px) {
+      .hero-inner {
+        grid-template-columns: 1fr;
+        gap: 60px;
+      }
+      .hero-content { max-width: 100%; }
+      .hero-visual { margin-top: 0; }
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .categories-grid { grid-template-columns: repeat(2, 1fr); }
+      .trust-grid { grid-template-columns: repeat(2, 1fr); }
+      .nav-links a:not(.nav-cta) { display: none; }
+    }
+    @media (max-width: 600px) {
+      nav { padding: 20px 24px; }
+      .hero { padding: 110px 24px 60px; }
+      section { padding: 72px 24px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .categories-grid { grid-template-columns: 1fr; }
+      .trust-grid { grid-template-columns: 1fr; }
+      .phone-mockup-img { width: 270px; }
+      .hero-visual { perspective: 800px; }
+
+      .cta-section { padding: 80px 24px; }
+      footer { padding: 24px; flex-direction: column; align-items: flex-start; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .logo-ring { animation: none; }
+      .tg-msg { opacity: 1; transform: none; animation: none; }
+      .phone-mockup-img { transform: none; opacity: 1; transition: none; }
+      .reveal { opacity: 1; transform: none; transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ─── Nav ──────────────────────────────────────────── -->
+  <nav id="nav">
+    <div class="nav-left">
+      <div class="logo-mark" aria-hidden="true">
+        <div class="logo-dot"></div>
+        <div class="logo-ring"></div>
+        <div class="logo-ring"></div>
+      </div>
+      <a href="#" class="logo-name">MailTide</a>
+    </div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#categories">Categories</a>
+      <a href="https://t.me/mailtidebot" target="_blank" class="nav-cta">Open in Telegram</a>
+    </div>
+  </nav>
+
+  <!-- ─── Hero ─────────────────────────────────────────── -->
+  <section class="hero" id="hero" style="max-width:none;">
+    <div class="hero-inner">
+      <div class="hero-content">
+        <p class="eyebrow">Job Search, Simplified</p>
+        <h1>Your inbox,<br>delivered to <em>Telegram</em></h1>
+        <p class="hero-description">
+          MailTide watches your Gmail for job application updates — offers, interviews,
+          rejections, assessments — and sends instant, categorized notifications
+          straight to Telegram. Never miss an update again.
+        </p>
+        <div class="hero-actions">
+          <a href="https://t.me/mailtidebot" target="_blank" class="btn btn-primary" id="hero-cta">
+            Start on Telegram
+          </a>
+          <a href="https://github.com/Adebayo-jzs/mailtide-bot" target="_blank" class="btn btn-secondary">
+            View Source
+          </a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="phone-mockup-img"><img src="https://cdn.byteship.cloud/f/p_lZZewfvv/mailtide.png" alt="Mailtide Bot" ></div>
+        <!-- <div class="phone-frame"> -->
+          <!-- <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="tg-header">
+              <div class="tg-avatar">📬</div>
+              <div class="tg-header-info">
+                <h3>MailTide Bot</h3>
+                <p>● online</p>
+              </div>
+            </div>
+            <div class="tg-messages">
+              <div class="tg-msg">
+                <span class="msg-label">🎉 Job Offer</span>
+                From: talent@stripe.com<br>
+                Subject: Offer Letter — Software Engineer
+                <span class="msg-detail">We are pleased to extend an offer for the role of…</span>
+                <span class="msg-time">10:32 AM</span>
+              </div>
+              <div class="tg-msg">
+                <span class="msg-label">📅 Interview Invitation</span>
+                From: recruit@vercel.com<br>
+                Subject: Next Steps — Technical Interview
+                <span class="msg-detail">We'd like to schedule a technical interview with…</span>
+                <span class="msg-time">11:15 AM</span>
+              </div>
+              <div class="tg-msg">
+                <span class="msg-label">✅ Application Received</span>
+                From: jobs@linear.app<br>
+                Subject: Thanks for Applying!
+                <span class="msg-detail">We received your application for Frontend Engineer…</span>
+                <span class="msg-time">2:48 PM</span>
+              </div>
+            </div>
+          </div> -->
+        <!-- </div> -->
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- ─── Features ─────────────────────────────────────── -->
+  <section id="features">
+    <div class="section-header reveal">
+      <p class="eyebrow">Features</p>
+      <h2>Everything you need to stay<br>on top of your <em>job search</em></h2>
+      <p>A smart layer between your inbox and your chat — filtering noise, categorizing updates, and delivering what matters.</p>
+    </div>
+    <div class="features-grid reveal">
+      <div class="feature-card">
+        <p class="feature-num">01</p>
+        <h3>Real-Time Polling</h3>
+        <p>Checks your Gmail every 60 seconds. Get notified on Telegram within a minute of receiving a job email.</p>
+      </div>
+      <div class="feature-card">
+        <p class="feature-num">02</p>
+        <h3>Smart Categorization</h3>
+        <p>Keyword matching classifies emails into 7 categories — offers, interviews, rejections, assessments, and more.</p>
+      </div>
+      <div class="feature-card">
+        <p class="feature-num">03</p>
+        <h3>AES-256 Encryption</h3>
+        <p>Your Gmail tokens are encrypted with AES-256-GCM at rest. We take your data security seriously.</p>
+      </div>
+      <div class="feature-card">
+        <p class="feature-num">04</p>
+        <h3>Multi-User Support</h3>
+        <p>Each user connects their own Gmail via OAuth2. The bot handles many users simultaneously with per-user polling.</p>
+      </div>
+      <div class="feature-card">
+        <p class="feature-num">05</p>
+        <h3>Read-Only Access</h3>
+        <p>MailTide only requests the <code>gmail.readonly</code> scope. It can never send, delete, or modify your emails.</p>
+      </div>
+      <div class="feature-card">
+        <p class="feature-num">06</p>
+        <h3>Disconnect Anytime</h3>
+        <p>Use <code>/stop</code> to instantly revoke access. Your refresh token and data are permanently deleted.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- ─── How It Works ─────────────────────────────────── -->
+  <section id="how-it-works">
+    <div class="section-header reveal">
+      <p class="eyebrow">How It Works</p>
+      <h2>Up and running in <em>three steps</em></h2>
+      <p>Connect your Gmail, and MailTide handles the rest. No config files, no cron jobs, no hassle.</p>
+    </div>
+    <div class="steps-container reveal">
+      <div class="step">
+        <span class="step-num">01</span>
+        <div class="step-content">
+          <h3>Start the bot on Telegram</h3>
+          <p>Search for MailTide on Telegram and tap <strong>/start</strong>. You'll get a button to connect your Gmail account via Google's secure OAuth2 flow.</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">02</span>
+        <div class="step-content">
+          <h3>Authorize Gmail read access</h3>
+          <p>Sign in with Google and grant read-only access. MailTide scans your last 48 hours of email immediately and sends any job updates it finds.</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">03</span>
+        <div class="step-content">
+          <h3>Sit back and get notified</h3>
+          <p>MailTide checks your inbox every 60 seconds. When a new job email arrives, you get a categorized Telegram notification — instantly.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- ─── Categories ───────────────────────────────────── -->
+  <section id="categories">
+    <div class="section-header reveal">
+      <p class="eyebrow">Smart Categories</p>
+      <h2>Every email, intelligently <em>classified</em></h2>
+      <p>Pattern matching detects the type of job email and labels it before sending it to your Telegram.</p>
+    </div>
+    <div class="categories-grid reveal">
+      <div class="category-card">
+        <div class="category-emoji">🎉</div>
+        <div class="category-info">
+          <h4>Job Offers</h4>
+          <p>Offer letters & acceptances</p>
+        </div>
+      </div>
+      <div class="category-card">
+        <div class="category-emoji">📅</div>
+        <div class="category-info">
+          <h4>Interviews</h4>
+          <p>Phone screens & video calls</p>
+        </div>
+      </div>
+      <div class="category-card">
+        <div class="category-emoji">❌</div>
+        <div class="category-info">
+          <h4>Rejections</h4>
+          <p>Application rejections</p>
+        </div>
+      </div>
+      <div class="category-card">
+        <div class="category-emoji">🧪</div>
+        <div class="category-info">
+          <h4>Assessments</h4>
+          <p>Coding challenges & tests</p>
+        </div>
+      </div>
+      <div class="category-card">
+        <div class="category-emoji">✅</div>
+        <div class="category-info">
+          <h4>Application Received</h4>
+          <p>Submission confirmations</p>
+        </div>
+      </div>
+      <div class="category-card">
+        <div class="category-emoji">🔁</div>
+        <div class="category-info">
+          <h4>Follow-Ups</h4>
+          <p>Status updates & check-ins</p>
+        </div>
+      </div>
+    </div>
+    <div class="callout reveal" style="margin-top:32px; max-width:640px;">
+      <p>MailTide classifies emails in-memory at scan time. No email content is ever stored to disk.</p>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- ─── Trust ────────────────────────────────────────── -->
+  <section id="trust">
+    <div class="section-header reveal">
+      <p class="eyebrow">Built Right</p>
+      <h2>Open source & <em>privacy-first</em></h2>
+      <p>MailTide is fully open source. You can inspect, fork, and self-host it yourself.</p>
+    </div>
+    <div class="trust-grid reveal">
+      <div class="trust-card">
+        <div class="trust-icon">🔓</div>
+        <h4>Open Source</h4>
+        <p>Full source code on GitHub. Audit it, contribute to it, or self-host it.</p>
+      </div>
+      <div class="trust-card">
+        <div class="trust-icon">🛡️</div>
+        <h4>Privacy First</h4>
+        <p>We store only your encrypted refresh token. Email content is never persisted.</p>
+      </div>
+      <div class="trust-card">
+        <div class="trust-icon">⚙️</div>
+        <h4>Self-Hostable</h4>
+        <p>Deploy on Railway, Render, Fly.io, or any VPS. Full control over your data.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- ─── CTA ──────────────────────────────────────────── -->
+  <div class="cta-section">
+    <div class="cta-box reveal">
+      <p class="eyebrow">Get Started</p>
+      <h2>Start tracking your<br>job search <em>today</em></h2>
+      <p>Connect your Gmail to Telegram in under a minute. It's free, open source, and always will be.</p>
+      <a href="https://t.me/mailtidebot" target="_blank" class="btn btn-primary" id="cta-button">
+        Open MailTide on Telegram
+      </a>
+    </div>
+  </div>
+
+  <!-- ─── Footer ───────────────────────────────────────── -->
+  <footer>
+    <span class="footer-left">© 2026 MailTide. Built by <a href="https://github.com/Adebayo-jzs" target="_blank">Adebayo</a></span>
+    <div class="footer-right">
+      <a href="https://github.com/Adebayo-jzs/mailtide-bot" target="_blank">GitHub</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="https://t.me/mailtidebot" target="_blank">Telegram</a>
+    </div>
+  </footer>
+
+  <script>
+    // Scroll reveal
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+
+    // Mockup flip on scroll
+    const flipObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('flipped-in');
+          flipObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+
+    const mockup = document.querySelector('.phone-mockup-img');
+    if (mockup) flipObserver.observe(mockup);
+  </script>
+</body>
+</html>
