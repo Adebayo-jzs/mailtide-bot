@@ -1,4 +1,5 @@
 import { google } from "googleapis";
+import { OAuth2Client } from "google-auth-library";
 
 export type JobEmailCategory =
   | "interview"
@@ -94,7 +95,7 @@ export function classifyEmail(subject: string, snippet: string): JobEmailCategor
   return null; // Not job-related, skip
 }
 
-export function createGmailClient(refreshToken?: string) {
+export function createGmailClient(refreshToken?: string): OAuth2Client {
   const auth = new google.auth.OAuth2(
     process.env.GMAIL_CLIENT_ID,
     process.env.GMAIL_CLIENT_SECRET,
@@ -117,7 +118,7 @@ export function getAuthUrl(chatId: number): string {
 }
 
 export async function fetchJobEmails(
-  auth: any,
+  auth: OAuth2Client,
   sinceTimestamp: number
 ): Promise<EmailSummary[]> {
   const gmail = google.gmail({ version: "v1", auth });
@@ -134,17 +135,28 @@ export async function fetchJobEmails(
   const messages = listRes.data.messages || [];
   if (messages.length === 0) return [];
 
+  // Fetch all message details concurrently instead of sequentially
+  const detailResults = await Promise.allSettled(
+    messages
+      .filter((msg) => !!msg.id)
+      .map((msg) =>
+        gmail.users.messages.get({
+          userId: "me",
+          id: msg.id!,
+          format: "metadata",
+          metadataHeaders: ["From", "Subject", "Date"],
+        })
+      )
+  );
+
   const emails: EmailSummary[] = [];
 
-  for (const msg of messages) {
-    if (!msg.id) continue;
+  for (const result of detailResults) {
+    if (result.status !== "fulfilled") continue;
 
-    const detail = await gmail.users.messages.get({
-      userId: "me",
-      id: msg.id,
-      format: "metadata",
-      metadataHeaders: ["From", "Subject", "Date"],
-    });
+    const detail = result.value;
+    const msgId = detail.data.id;
+    if (!msgId) continue;
 
     const headers = detail.data.payload?.headers || [];
     const get = (name: string) =>
@@ -157,7 +169,7 @@ export async function fetchJobEmails(
     if (!category) continue; // Not job-related after local check — skip
 
     emails.push({
-      id: msg.id,
+      id: msgId,
       from: get("From"),
       subject,
       snippet,
