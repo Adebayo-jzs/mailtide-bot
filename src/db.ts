@@ -12,18 +12,30 @@ const pool = new Pool({
 });
 
 // AES-256-GCM encryption setup
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY; // Must be 32 bytes (64 hex chars or base64)
 const ALGORITHM = "aes-256-gcm";
 
-function encrypt(text: string): string {
-  if (!ENCRYPTION_KEY) return text;
-  
-  const key = Buffer.from(ENCRYPTION_KEY, "hex");
-  if (key.length !== 32) throw new Error("ENCRYPTION_KEY must be exactly 32 bytes (64 hex chars).");
+function getEncryptionKey(): Buffer {
+  const key = process.env.ENCRYPTION_KEY;
+  if (!key) {
+    throw new Error(
+      "ENCRYPTION_KEY is not set. Refusing to start without encryption. " +
+      "Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
+    );
+  }
+  const buf = Buffer.from(key, "hex");
+  if (buf.length !== 32) {
+    throw new Error(
+      `ENCRYPTION_KEY must be exactly 32 bytes (64 hex chars). Got ${buf.length} bytes.`
+    );
+  }
+  return buf;
+}
 
+function encrypt(text: string): string {
+  const key = getEncryptionKey();
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
-  
+
   let encrypted = cipher.update(text, "utf8", "hex");
   encrypted += cipher.final("hex");
   const authTag = cipher.getAuthTag().toString("hex");
@@ -32,28 +44,34 @@ function encrypt(text: string): string {
 }
 
 function decrypt(text: string): string {
-  if (!ENCRYPTION_KEY || !text.includes(":")) return text;
-
-  const key = Buffer.from(ENCRYPTION_KEY, "hex");
-  if (key.length !== 32) throw new Error("ENCRYPTION_KEY must be exactly 32 bytes (64 hex chars).");
+  const key = getEncryptionKey();
 
   const [ivHex, authTagHex, encryptedHex] = text.split(":");
-  if (!ivHex || !authTagHex || !encryptedHex) throw new Error("Invalid encrypted format");
+  if (!ivHex || !authTagHex || !encryptedHex) {
+    throw new Error("Invalid encrypted token format in database. Data may be corrupted.");
+  }
 
   const iv = Buffer.from(ivHex, "hex");
   const authTag = Buffer.from(authTagHex, "hex");
-  
+
   const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
   decipher.setAuthTag(authTag);
-  
+
   let decrypted = decipher.update(encryptedHex, "hex", "utf8");
   decrypted += decipher.final("utf8");
 
   return decrypted;
 }
 
+// Validate encryption key early so we fail fast
+function validateEncryptionKey() {
+  getEncryptionKey(); // throws if missing or invalid
+  console.log("🔒 Encryption key validated");
+}
+
 // Initialize tables
 export async function initDb() {
+  validateEncryptionKey();
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       chat_id BIGINT PRIMARY KEY,
@@ -70,7 +88,8 @@ export async function upsertUser(chatId: number, refreshToken: string) {
     INSERT INTO users (chat_id, refresh_token, last_check_time)
     VALUES ($1, $2, $3)
     ON CONFLICT(chat_id) DO UPDATE SET
-      refresh_token = EXCLUDED.refresh_token
+      refresh_token = EXCLUDED.refresh_token,
+      last_check_time = EXCLUDED.last_check_time
   `, [chatId, encryptedToken, now]);
 }
 
@@ -104,5 +123,9 @@ export async function getUser(chatId: number): Promise<User | undefined> {
 
 export async function deleteUser(chatId: number) {
   await pool.query("DELETE FROM users WHERE chat_id = $1", [chatId]);
+}
+
+export async function closePool() {
+  await pool.end();
 }
 
