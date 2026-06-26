@@ -2,13 +2,13 @@ import express from "express";
 import TelegramBot from "node-telegram-bot-api";
 import { createGmailClient } from "./gmail";
 import { upsertUser } from "./db";
-import { sendStatusMessage } from "./telegram";
 import path from "path";
+import http from "http";
 
 export function startServer(
   bot: TelegramBot,
-  onUserAuthed?: (chatId: number, refreshToken: string) => void
-) {
+  onUserAuthed?: (chatId: number, refreshToken: string) => Promise<void>
+): http.Server {
   const app = express();
   const port = process.env.PORT || 3000;
 
@@ -44,36 +44,29 @@ export function startServer(
       if (tokens.refresh_token) {
         await upsertUser(chatId, tokens.refresh_token);
         
-        try {
-          await sendStatusMessage(
-            bot,
-            chatId,
-            "✅ Authentication successful!\n\nYour Gmail account is now connected.\n\n🔍 Scanning your inbox for job emails from the past 48 hours..."
-          );
-        } catch (e) {
-          console.error("Failed to send success message to telegram:", e);
-        }
+        await bot.sendMessage(
+          chatId,
+          "✅ Authentication successful!\n\nYour Gmail account is now connected.\n\n🔍 Scanning your inbox for job emails from the past 48 hours..."
+        ).catch((e) => console.error("Failed to send success message to telegram:", e));
 
-        // Trigger the post-auth 48h email check
+        // Trigger the post-auth 48h email check (fire-and-forget with error logging)
         if (onUserAuthed) {
-          onUserAuthed(chatId, tokens.refresh_token);
+          onUserAuthed(chatId, tokens.refresh_token).catch((e) =>
+            console.error(`❌ Post-auth check error for ${chatId}:`, e)
+          );
         }
 
         res.send("Authentication successful! You can close this tab and return to Telegram.");
       } else {
-        try {
-          await sendStatusMessage(
-            bot,
-            chatId,
-            "⚠️ Google did not return a refresh token.\n\n" +
-            "Please revoke access first:\n" +
-            "1. Go to https://myaccount.google.com/permissions\n" +
-            "2. Find this app and click 'Remove Access'\n" +
-            "3. Then use /start again"
-          );
-        } catch (e) {
-          console.error("Failed to send revoke message to telegram:", e);
-        }
+        await bot.sendMessage(
+          chatId,
+          "⚠️ Google did not return a refresh token.\n\n" +
+          "Please revoke access first:\n" +
+          "1. Go to https://myaccount.google.com/permissions\n" +
+          "2. Find this app and click 'Remove Access'\n" +
+          "3. Then use /start again"
+        ).catch((e) => console.error("Failed to send revoke message to telegram:", e));
+
         res.send("Google did not return a refresh token. Please revoke app access at https://myaccount.google.com/permissions and try /start again.");
       }
     } catch (err) {
@@ -86,8 +79,10 @@ export function startServer(
     res.status(200).send("OK");
   });
 
-  app.listen(port, () => {
+  const server = app.listen(port, () => {
     console.log(`🌐 OAuth server listening on port ${port}`);
   });
+
+  return server;
 }
 
