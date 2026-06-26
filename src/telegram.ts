@@ -42,14 +42,6 @@ export async function sendJobNotification(
   });
 }
 
-export async function sendStatusMessage(
-  bot: TelegramBot,
-  chatId: number,
-  text: string
-): Promise<void> {
-  await bot.sendMessage(chatId, text);
-}
-
 function truncate(text: string, max: number): string {
   return text.length <= max ? text : text.slice(0, max) + "…";
 }
